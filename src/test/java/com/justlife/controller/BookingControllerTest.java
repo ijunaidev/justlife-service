@@ -52,7 +52,7 @@ public class BookingControllerTest {
                 .thenReturn(professionals);
 
         mockMvc.perform(get("/bookings/availability")
-                        .param("startTime", "2024-07-22T10:00:00")
+                        .param("startTime", "2024-08-10T10:00:00")
                         .param("duration", "2"))
                 .andExpect(status().isOk());
     }
@@ -64,7 +64,7 @@ public class BookingControllerTest {
                 .thenReturn(professionals);
 
         mockMvc.perform(get("/bookings/availability")
-                        .param("startTime", "2024-07-22T17:00:00")
+                        .param("startTime", "2024-08-10T17:00:00")
                         .param("duration", "2"))
                 .andExpect(status().isOk());
     }
@@ -92,11 +92,12 @@ public class BookingControllerTest {
 
         List<CleaningProfessional> professionals = new ArrayList<>();
         professionals.add(professional);
+
         when(availabilityCheckService.checkAvailability(any(LocalDateTime.class), any(Integer.class)))
                 .thenReturn(professionals);
 
         mockMvc.perform(get("/bookings/availability")
-                        .param("startTime", "2024-07-22T10:00:00")
+                        .param("startTime", "2024-08-10T10:00:00")
                         .param("duration", "2"))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[{'id':1,'name':'John Doe','available':true}]"));
