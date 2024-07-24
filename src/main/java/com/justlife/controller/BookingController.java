@@ -25,14 +25,15 @@ public class BookingController {
     private AvailabilityCheckService availabilityCheckService;
 
     @GetMapping("/availability")
-    public List<CleaningProfessional> checkAvailability(@RequestParam String startTime, @RequestParam int duration) {
+    public List<CleaningProfessional> checkAvailability(@RequestParam String startTime, @RequestParam int duration, @RequestParam int professionalsRequired) {
         try {
+            if ((duration != 2 && duration != 4) || (professionalsRequired < 1 || professionalsRequired > 3)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid duration or professionals required");
+            }
+
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
             LocalDateTime parsedStartTime = LocalDateTime.parse(startTime, formatter);
-            if (parsedStartTime.isBefore(LocalDateTime.now())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Past time not allowed");
-            }
-            return availabilityCheckService.checkAvailability(parsedStartTime, duration);
+            return availabilityCheckService.checkAvailability(parsedStartTime, duration, professionalsRequired);
         } catch (DateTimeParseException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format", e);
         }
@@ -40,11 +41,25 @@ public class BookingController {
 
     @PostMapping
     public Booking createBooking(@RequestBody Booking booking) {
+        if (booking.getProfessionalsRequired() < 1 || booking.getProfessionalsRequired() > 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid number of professionals required");
+        }
+        if (booking.getDuration() != 2 && booking.getDuration() != 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid booking duration. Must be 2 or 4 hours.");
+        }
+
         return bookingService.createBooking(booking);
     }
 
     @PutMapping("/{id}")
     public Booking updateBooking(@PathVariable Long id, @RequestBody Booking booking) {
+        if (booking.getProfessionalsRequired() < 1 || booking.getProfessionalsRequired() > 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid number of professionals required");
+        }
+        if (booking.getDuration() != 2 && booking.getDuration() != 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid booking duration. Must be 2 or 4 hours.");
+        }
+
         return bookingService.updateBooking(id, booking);
     }
 }

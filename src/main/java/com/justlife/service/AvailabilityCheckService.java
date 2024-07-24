@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,36 +22,50 @@ public class AvailabilityCheckService {
     @Autowired
     private BookingRepository bookingRepository;
 
-    public List<CleaningProfessional> checkAvailability(LocalDateTime startTime, int duration) {
+    public List<CleaningProfessional> checkAvailability(LocalDateTime startTime, int duration, int professionalsRequired) {
         LocalDateTime endTime = startTime.plusHours(duration);
         List<CleaningProfessional> allProfessionals = professionalRepository.findAll();
 
-        return allProfessionals.stream()
-                .filter(professional -> isAvailable(professional, startTime, endTime))
+        List<CleaningProfessional> availableProfessionals = allProfessionals.stream()
+                .filter(professional -> isAvailable(professional, startTime, endTime, professionalsRequired))
                 .collect(Collectors.toList());
+
+        if (availableProfessionals.size() < professionalsRequired) {
+            return new ArrayList<>();
+        }
+
+        return availableProfessionals;
     }
 
-    private boolean isAvailable(CleaningProfessional professional, LocalDateTime startTime, LocalDateTime endTime) {
+    private boolean isAvailable(CleaningProfessional professional, LocalDateTime startTime, LocalDateTime endTime, int professionalsRequired) {
+        boolean isWorkingDay = professional.isWorkingOnFridays() || startTime.getDayOfWeek().getValue() != 5;
+
+        if (!isWorkingDay) {
+            return false;
+        }
+
         String[] workingHours = professional.getWorkingHours().split("-");
         LocalTime startWorkTime = LocalTime.parse(workingHours[0]);
         LocalTime endWorkTime = LocalTime.parse(workingHours[1]);
 
-        boolean isWorkingDay = professional.isWorkingOnFridays() || startTime.getDayOfWeek().getValue() != 5;
-
         boolean isWithinWorkingHours = !startTime.toLocalTime().isBefore(startWorkTime) && !endTime.toLocalTime().isAfter(endWorkTime);
 
-        boolean isNotBooked = checkIfNotBooked(professional, startTime, endTime);
+        if (!isWithinWorkingHours) {
+            return false;
+        }
 
-        return isWorkingDay && isWithinWorkingHours && isNotBooked;
-    }
+        List<Booking> bookings = bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(
+                professional.getId(), startTime.toLocalDate().atStartOfDay(), endTime.toLocalDate().atTime(23, 59));
 
-    private boolean checkIfNotBooked(CleaningProfessional professional, LocalDateTime startTime, LocalDateTime endTime) {
-        LocalDateTime adjustedStartTime = startTime.minusMinutes(30);
-        LocalDateTime adjustedEndTime = endTime.plusMinutes(30);
+        for (Booking booking : bookings) {
+            LocalDateTime bookingStart = booking.getStartTime();
+            LocalDateTime bookingEnd = booking.getEndTime();
 
-        List<Booking> conflictingBookings = bookingRepository.findByStartTimeLessThanEqualAndEndTimeGreaterThanEqual(adjustedEndTime, adjustedStartTime);
+            if ((startTime.isBefore(bookingEnd.plusMinutes(30)) && endTime.isAfter(bookingStart.minusMinutes(30)))) {
+                return false;
+            }
+        }
 
-        return conflictingBookings.stream()
-                .noneMatch(booking -> booking.getProfessionals() != null && booking.getProfessionals().contains(professional));
+        return true;
     }
 }

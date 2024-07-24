@@ -19,6 +19,11 @@ public class Booking {
     private int professionalsRequired;
 
     @ManyToMany
+    @JoinTable(
+            name = "booking_professionals",
+            joinColumns = @JoinColumn(name = "booking_id"),
+            inverseJoinColumns = @JoinColumn(name = "professional_id")
+    )
     private List<CleaningProfessional> professionals;
 
 }
