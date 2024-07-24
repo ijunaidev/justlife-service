@@ -26,6 +26,12 @@ public class BookingService {
     @Autowired
     private AvailabilityCheckService availabilityCheckService;
 
+    /**
+     * Creates a new booking for cleaning services.
+     *
+     * @param booking the booking information
+     * @return the saved booking
+     */
     @Transactional
     public Booking createBooking(Booking booking) {
         validateBooking(booking);
@@ -50,6 +56,14 @@ public class BookingService {
         return savedBooking;
     }
 
+
+    /**
+     * Updates an existing booking for cleaning services.
+     *
+     * @param bookingId the ID of the booking to update
+     * @param updatedBooking the updated booking information
+     * @return the updated booking
+     */
     @Transactional
     public Booking updateBooking(Long bookingId, Booking updatedBooking) {
         Optional<Booking> optionalBooking = bookingRepository.findById(bookingId);
