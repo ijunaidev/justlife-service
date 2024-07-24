@@ -28,38 +28,26 @@ public class BookingService {
 
     @Transactional
     public Booking createBooking(Booking booking) {
-        // Validate duration and professionals count
-        if ((booking.getDuration() != 2 && booking.getDuration() != 4) ||
-                (booking.getProfessionalsRequired() < 1 || booking.getProfessionalsRequired() > 3)) {
-            throw new IllegalArgumentException("Invalid booking duration or professionals required");
-        }
+        validateBooking(booking);
 
-        // Calculate end time from start time and duration
         LocalDateTime startTime = booking.getStartTime();
         LocalDateTime endTime = startTime.plusHours(booking.getDuration());
         booking.setEndTime(endTime);
 
-        // Check availability of professionals assigned to the same vehicle
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, booking.getDuration(), booking.getProfessionalsRequired());
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(startTime, booking.getDuration(), booking.getProfessionalsRequired());
 
         if (availableProfessionals.size() < booking.getProfessionalsRequired()) {
             throw new IllegalStateException("Not enough professionals available for the requested time");
         }
 
-        // Filter professionals by vehicle
         Vehicle vehicle = availableProfessionals.get(0).getVehicle();
-        List<CleaningProfessional> assignedProfessionals = vehicle.getProfessionals().stream()
-                .filter(pro -> availableProfessionals.contains(pro))
-                .limit(booking.getProfessionalsRequired())
-                .collect(Collectors.toList());
-
-        if (assignedProfessionals.size() < booking.getProfessionalsRequired()) {
-            throw new IllegalStateException("Not enough professionals from the same vehicle available for the requested time");
-        }
+        List<CleaningProfessional> assignedProfessionals = filterProfessionalsByVehicle(vehicle, availableProfessionals, booking.getProfessionalsRequired());
 
         booking.setProfessionals(assignedProfessionals);
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+        availabilityCheckService.updateProfessionalsAvailability(booking.getProfessionals(), savedBooking);
+        return savedBooking;
     }
 
     @Transactional
@@ -71,41 +59,49 @@ public class BookingService {
         }
 
         Booking existingBooking = optionalBooking.get();
+        validateBooking(updatedBooking);
 
-        // Validate duration and professionals count
-        if ((updatedBooking.getDuration() != 2 && updatedBooking.getDuration() != 4) ||
-                (updatedBooking.getProfessionalsRequired() < 1 || updatedBooking.getProfessionalsRequired() > 3)) {
-            throw new IllegalArgumentException("Invalid booking duration or professionals required");
-        }
-
-        // Calculate end time from start time and duration
         LocalDateTime startTime = updatedBooking.getStartTime();
         LocalDateTime endTime = startTime.plusHours(updatedBooking.getDuration());
         updatedBooking.setEndTime(endTime);
 
-        // Check availability of professionals assigned to the same vehicle
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, updatedBooking.getDuration(), updatedBooking.getProfessionalsRequired());
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(startTime, updatedBooking.getDuration(), updatedBooking.getProfessionalsRequired());
 
         if (availableProfessionals.size() < updatedBooking.getProfessionalsRequired()) {
             throw new IllegalStateException("Not enough professionals available for the requested time");
         }
 
-        // Filter professionals by vehicle
         Vehicle vehicle = availableProfessionals.get(0).getVehicle();
-        List<CleaningProfessional> assignedProfessionals = vehicle.getProfessionals().stream()
-                .filter(pro -> availableProfessionals.contains(pro))
-                .limit(updatedBooking.getProfessionalsRequired())
-                .collect(Collectors.toList());
-
-        if (assignedProfessionals.size() < updatedBooking.getProfessionalsRequired()) {
-            throw new IllegalStateException("Not enough professionals from the same vehicle available for the requested time");
-        }
+        List<CleaningProfessional> assignedProfessionals = filterProfessionalsByVehicle(vehicle, availableProfessionals, updatedBooking.getProfessionalsRequired());
 
         existingBooking.setProfessionals(assignedProfessionals);
         existingBooking.setStartTime(updatedBooking.getStartTime());
+        existingBooking.setEndTime(updatedBooking.getEndTime());
         existingBooking.setDuration(updatedBooking.getDuration());
         existingBooking.setProfessionalsRequired(updatedBooking.getProfessionalsRequired());
 
-        return bookingRepository.save(existingBooking);
+        Booking savedBooking = bookingRepository.save(existingBooking);
+        availabilityCheckService.updateProfessionalsAvailability(savedBooking.getProfessionals(), savedBooking);
+        return savedBooking;
+    }
+
+    private void validateBooking(Booking booking) {
+        if ((booking.getDuration() != 2 && booking.getDuration() != 4) ||
+                (booking.getProfessionalsRequired() < 1 || booking.getProfessionalsRequired() > 3)) {
+            throw new IllegalArgumentException("Invalid booking duration or professionals required");
+        }
+    }
+
+    private List<CleaningProfessional> filterProfessionalsByVehicle(Vehicle vehicle, List<CleaningProfessional> availableProfessionals, int professionalsRequired) {
+        List<CleaningProfessional> assignedProfessionals = vehicle.getProfessionals().stream()
+                .filter(availableProfessionals::contains)
+                .limit(professionalsRequired)
+                .collect(Collectors.toList());
+
+        if (assignedProfessionals.size() < professionalsRequired) {
+            throw new IllegalStateException("Not enough professionals from the same vehicle available for the requested time");
+        }
+
+        return assignedProfessionals;
     }
 }

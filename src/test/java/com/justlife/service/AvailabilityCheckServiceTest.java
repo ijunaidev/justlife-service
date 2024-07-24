@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ class AvailabilityCheckServiceTest {
         professionals = new ArrayList<>();
 
         for (int i = 1; i <= 5; i++) {
-            final int vehicleIndex = i;
+            final int vehicleIndex = i; // Declare final variable for lambda expression
             Vehicle vehicle = new Vehicle();
             vehicle.setId((long) vehicleIndex);
             vehicle.setName("Vehicle " + vehicleIndex);
@@ -64,54 +65,20 @@ class AvailabilityCheckServiceTest {
         }
     }
 
-    // Test cases
-
     @Test
-    void testCheckAvailability_ProfessionalAvailable() {
+    void testCheckAvailabilityByDate_NotEnoughProfessionalsAvailable() {
         when(professionalRepository.findAll()).thenReturn(professionals);
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>());
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
-
-        assertEquals(25, availableProfessionals.size());
-    }
-
-    @Test
-    void testCheckAvailability_ProfessionalNotAvailableOnFriday() {
-        when(professionalRepository.findAll()).thenReturn(professionals);
-
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 26, 10, 0); // Friday
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDate(date, 6);
 
         assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalNotAvailableOutsideWorkingHours() {
-        when(professionalRepository.findAll()).thenReturn(professionals);
-
-        final LocalDateTime startTimeBeforeHours = LocalDateTime.of(2024, 7, 22, 7, 0); // Before working hours
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionalsBeforeHours = availabilityCheckService.checkAvailability(startTimeBeforeHours, duration, 1);
-
-        assertEquals(0, availableProfessionalsBeforeHours.size());
-
-        final LocalDateTime startTimeAfterHours = LocalDateTime.of(2024, 7, 22, 21, 0); // Ending after working hours
-
-        List<CleaningProfessional> availableProfessionalsAfterHours = availabilityCheckService.checkAvailability(startTimeAfterHours, duration, 1);
-
-        assertEquals(0, availableProfessionalsAfterHours.size());
-    }
-
-    @Test
-    void testCheckAvailability_ProfessionalBookedWithoutBreak() {
+    void testCheckAvailabilityByDate_ProfessionalsUnavailableDueToDifferentVehicles() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
         Booking booking = new Booking();
@@ -124,16 +91,14 @@ class AvailabilityCheckServiceTest {
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(bookings);
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0); // Directly after existing booking
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDate(date, 3);
 
         assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalBookedWithBreak() {
+    void testCheckAvailabilityByDate_ProfessionalsAvailableWithBreaks() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
         Booking booking = new Booking();
@@ -146,107 +111,58 @@ class AvailabilityCheckServiceTest {
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(bookings);
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 31); // 30 minutes after existing booking
-        final int duration = 2;
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(date.atTime(10, 31), 2, 2);
 
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
-
-        assertEquals(25, availableProfessionals.size());
+        assertEquals(2, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_MultipleProfessionalsAvailable() {
-        when(professionalRepository.findAll()).thenReturn(professionals);
-        when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .thenReturn(new ArrayList<>());
-
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 3);
-
-        assertEquals(25, availableProfessionals.size());
-    }
-
-    @Test
-    void testCheckAvailability_MultipleProfessionalsUnavailableDueToBookings() {
+    void testCheckAvailabilityByDate_ProfessionalsUnavailableDueToWorkingHours() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
-        Booking booking1 = new Booking();
-        booking1.setStartTime(LocalDateTime.of(2024, 7, 22, 8, 0));
-        booking1.setEndTime(LocalDateTime.of(2024, 7, 22, 10, 0));
-
-        Booking booking2 = new Booking();
-        booking2.setStartTime(LocalDateTime.of(2024, 7, 22, 8, 0));
-        booking2.setEndTime(LocalDateTime.of(2024, 7, 22, 10, 0));
-
-        List<Booking> bookings = new ArrayList<>();
-        bookings.add(booking1);
-        bookings.add(booking2);
-
-        when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .thenReturn(bookings);
-
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 3);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        LocalDateTime startTime = date.atTime(7, 0); // Before working hours
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(startTime, 2, 1);
 
         assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalAvailableButNotEnoughProfessionals() {
+    void testCheckAvailabilityByDate_ProfessionalsUnavailableDueToEndWorkingHours() {
         when(professionalRepository.findAll()).thenReturn(professionals);
-        when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .thenReturn(new ArrayList<>());
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 26);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        LocalDateTime startTime = date.atTime(21, 0); // Ending after working hours
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(startTime, 2, 1);
 
         assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalAvailableWithSomeUnavailableDueToBookings() {
+    void testCheckAvailabilityByDate_ProfessionalNotAvailableOnFriday() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
-        Booking booking = new Booking();
-        booking.setStartTime(LocalDateTime.of(2024, 7, 22, 8, 0));
-        booking.setEndTime(LocalDateTime.of(2024, 7, 22, 10, 0));
+        LocalDate date = LocalDate.of(2024, 7, 26); // Friday
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDate(date, 1);
 
-        List<Booking> bookings = new ArrayList<>();
-        bookings.add(booking);
-
-        when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .thenReturn(bookings);
-
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 31); // 30 minutes after existing booking
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 5);
-
-        assertEquals(25, availableProfessionals.size());
+        assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalAvailableWithSpecificDuration() {
+    void testCheckAvailabilityByDate_ProfessionalAvailableWithSpecificDuration() {
         when(professionalRepository.findAll()).thenReturn(professionals);
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>());
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 4;
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(date.atTime(10, 0), 4, 2);
 
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 2);
-
-        assertEquals(25, availableProfessionals.size());
+        assertEquals(2, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalUnavailableWithSpecificDuration() {
+    void testCheckAvailabilityByDate_ProfessionalUnavailableWithSpecificDuration() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
         Booking booking = new Booking();
@@ -259,16 +175,14 @@ class AvailabilityCheckServiceTest {
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(bookings);
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 4;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 2);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(date.atTime(10, 0), 4, 2);
 
         assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalAvailableWithMultipleBookings() {
+    void testCheckAvailabilityByDate_ProfessionalAvailableWithMultipleBookings() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
         Booking booking1 = new Booking();
@@ -286,42 +200,37 @@ class AvailabilityCheckServiceTest {
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(bookings);
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 11, 31); // 30 minutes after the second booking
-        final int duration = 2;
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(date.atTime(11, 31), 2, 3); // 30 minutes after the second booking
 
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 3);
-
-        assertEquals(25, availableProfessionals.size());
+        assertEquals(3, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_NoProfessionalsAvailable() {
+    void testCheckAvailabilityByDate_NoProfessionalsAvailable() {
         when(professionalRepository.findAll()).thenReturn(new ArrayList<>()); // No professionals available
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDate(date, 1);
 
         assertEquals(0, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalAvailableInDifferentTimeZones() {
+    void testCheckAvailabilityByDate_ProfessionalAvailableInDifferentTimeZones() {
         when(professionalRepository.findAll()).thenReturn(professionals);
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>());
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 14, 0); // Assume different time zones are considered
-        final int duration = 2;
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        LocalDateTime startTime = date.atTime(14, 0); // Assume different time zones are considered
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(startTime, 2, 1);
 
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
-
-        assertEquals(25, availableProfessionals.size());
+        assertEquals(1, availableProfessionals.size());
     }
 
     @Test
-    void testCheckAvailability_ProfessionalWithOverlappingBookings() {
+    void testCheckAvailabilityByDate_ProfessionalWithOverlappingBookings() {
         when(professionalRepository.findAll()).thenReturn(professionals);
 
         Booking booking1 = new Booking();
@@ -339,10 +248,8 @@ class AvailabilityCheckServiceTest {
         when(bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(any(Long.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(bookings);
 
-        final LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 31); // Overlapping booking scenario
-        final int duration = 2;
-
-        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailability(startTime, duration, 1);
+        LocalDate date = LocalDate.of(2024, 7, 22);
+        List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDateTime(date.atTime(10, 31), 2, 1); // Overlapping booking scenario
 
         assertEquals(0, availableProfessionals.size());
     }

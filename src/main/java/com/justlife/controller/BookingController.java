@@ -9,10 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/bookings")
@@ -25,15 +27,20 @@ public class BookingController {
     private AvailabilityCheckService availabilityCheckService;
 
     @GetMapping("/availability")
-    public List<CleaningProfessional> checkAvailability(@RequestParam String startTime, @RequestParam int duration, @RequestParam int professionalsRequired) {
+    public List<CleaningProfessional> checkAvailability(@RequestParam String date, @RequestParam(required = false) String startTime, @RequestParam(required = false) Integer duration, @RequestParam(required = false) Integer professionalsRequired) {
         try {
-            if ((duration != 2 && duration != 4) || (professionalsRequired < 1 || professionalsRequired > 3)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid duration or professionals required");
-            }
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate parsedDate = LocalDate.parse(date, dateFormatter);
 
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-            LocalDateTime parsedStartTime = LocalDateTime.parse(startTime, formatter);
-            return availabilityCheckService.checkAvailability(parsedStartTime, duration, professionalsRequired);
+            if (startTime == null || duration == null || professionalsRequired == null) {
+                // Only date provided
+                return availabilityCheckService.checkAvailabilityByDate(parsedDate, professionalsRequired != null ? professionalsRequired : 1);
+            } else {
+                // Date, startTime, duration, and professionalsRequired provided
+                DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+                LocalDateTime parsedStartTime = LocalDateTime.parse(startTime, dateTimeFormatter);
+                return availabilityCheckService.checkAvailabilityByDateTime(parsedStartTime, duration, professionalsRequired != null ? professionalsRequired : 1);
+            }
         } catch (DateTimeParseException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format", e);
         }
@@ -63,3 +70,4 @@ public class BookingController {
         return bookingService.updateBooking(id, booking);
     }
 }
+

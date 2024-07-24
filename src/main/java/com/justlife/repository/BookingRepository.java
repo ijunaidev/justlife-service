@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(Long professionalId, LocalDateTime start, LocalDateTime end);
+    List<Booking> findByProfessionals_Id(Long professionalId);
 }
