@@ -50,7 +50,7 @@ class VehicleControllerTest {
     void testGetAllVehicles() throws Exception {
         when(vehicleService.getAllVehicles()).thenReturn(vehicles);
 
-        mockMvc.perform(get("/api/vehicles"))
+        mockMvc.perform(get("/vehicles"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("[{'id':1,'name':'Toyota Corolla'}]"));
@@ -60,7 +60,7 @@ class VehicleControllerTest {
     void testGetVehicleById() throws Exception {
         when(vehicleService.getVehicleById(1L)).thenReturn(Optional.of(vehicle));
 
-        mockMvc.perform(get("/api/vehicles/1"))
+        mockMvc.perform(get("/vehicles/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("{'id':1,'name':'Toyota Corolla'}"));
@@ -70,7 +70,7 @@ class VehicleControllerTest {
     void testGetVehicleById_NotFound() throws Exception {
         when(vehicleService.getVehicleById(1L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/vehicles/1"))
+        mockMvc.perform(get("/vehicles/1"))
                 .andExpect(status().isNotFound());
     }
 
@@ -80,7 +80,7 @@ class VehicleControllerTest {
 
         String vehicleJson = "{\"name\":\"Toyota Corolla\"}";
 
-        mockMvc.perform(post("/api/vehicles")
+        mockMvc.perform(post("/vehicles")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(vehicleJson))
                 .andExpect(status().isCreated())
@@ -95,7 +95,7 @@ class VehicleControllerTest {
 
         String vehicleJson = "{\"name\":\"Toyota Corolla\"}";
 
-        mockMvc.perform(put("/api/vehicles/1")
+        mockMvc.perform(put("/vehicles/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(vehicleJson))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class VehicleControllerTest {
 
         String vehicleJson = "{\"name\":\"Toyota Corolla\"}";
 
-        mockMvc.perform(put("/api/vehicles/1")
+        mockMvc.perform(put("/vehicles/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(vehicleJson))
                 .andExpect(status().isNotFound());
@@ -120,7 +120,7 @@ class VehicleControllerTest {
     void testDeleteVehicle() throws Exception {
         when(vehicleService.deleteVehicle(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/vehicles/1"))
+        mockMvc.perform(delete("/vehicles/1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -128,7 +128,7 @@ class VehicleControllerTest {
     void testDeleteVehicle_NotFound() throws Exception {
         when(vehicleService.deleteVehicle(1L)).thenReturn(false);
 
-        mockMvc.perform(delete("/api/vehicles/1"))
+        mockMvc.perform(delete("/vehicles/1"))
                 .andExpect(status().isNotFound());
     }
 }

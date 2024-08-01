@@ -50,7 +50,7 @@ class CleaningProfessionalControllerTest {
     void testGetAllCleaningProfessionals() throws Exception {
         when(cleaningProfessionalService.getAllCleaningProfessionals()).thenReturn(professionals);
 
-        mockMvc.perform(get("/api/cleaningProfessionals"))
+        mockMvc.perform(get("/cleaningProfessionals"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("[{'id':1,'name':'Alice'}]"));
@@ -60,7 +60,7 @@ class CleaningProfessionalControllerTest {
     void testGetCleaningProfessionalById() throws Exception {
         when(cleaningProfessionalService.getCleaningProfessionalById(1L)).thenReturn(Optional.of(professional));
 
-        mockMvc.perform(get("/api/cleaningProfessionals/1"))
+        mockMvc.perform(get("/cleaningProfessionals/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("{'id':1,'name':'Alice'}"));
@@ -70,7 +70,7 @@ class CleaningProfessionalControllerTest {
     void testGetCleaningProfessionalById_NotFound() throws Exception {
         when(cleaningProfessionalService.getCleaningProfessionalById(1L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/cleaningProfessionals/1"))
+        mockMvc.perform(get("/cleaningProfessionals/1"))
                 .andExpect(status().isNotFound());
     }
 
@@ -80,7 +80,7 @@ class CleaningProfessionalControllerTest {
 
         String professionalJson = "{\"name\":\"Alice\"}";
 
-        mockMvc.perform(post("/api/cleaningProfessionals")
+        mockMvc.perform(post("/cleaningProfessionals")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(professionalJson))
                 .andExpect(status().isCreated())
@@ -95,7 +95,7 @@ class CleaningProfessionalControllerTest {
 
         String professionalJson = "{\"name\":\"Alice\"}";
 
-        mockMvc.perform(put("/api/cleaningProfessionals/1")
+        mockMvc.perform(put("/cleaningProfessionals/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(professionalJson))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class CleaningProfessionalControllerTest {
 
         String professionalJson = "{\"name\":\"Alice\"}";
 
-        mockMvc.perform(put("/api/cleaningProfessionals/1")
+        mockMvc.perform(put("/cleaningProfessionals/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(professionalJson))
                 .andExpect(status().isNotFound());
@@ -120,7 +120,7 @@ class CleaningProfessionalControllerTest {
     void testDeleteCleaningProfessional() throws Exception {
         when(cleaningProfessionalService.deleteCleaningProfessional(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/cleaningProfessionals/1"))
+        mockMvc.perform(delete("/cleaningProfessionals/1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -128,7 +128,7 @@ class CleaningProfessionalControllerTest {
     void testDeleteCleaningProfessional_NotFound() throws Exception {
         when(cleaningProfessionalService.deleteCleaningProfessional(1L)).thenReturn(false);
 
-        mockMvc.perform(delete("/api/cleaningProfessionals/1"))
+        mockMvc.perform(delete("/cleaningProfessionals/1"))
                 .andExpect(status().isNotFound());
     }
 }
