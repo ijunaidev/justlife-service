@@ -1,5 +1,6 @@
 package com.justlife.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -20,5 +21,6 @@ public class Vehicle {
 
     @OneToMany(mappedBy = "vehicle")
     @Schema(description = "List of cleaning professionals assigned to the vehicle")
+    //@JsonBackReference
     private List<CleaningProfessional> professionals;
 }

@@ -74,7 +74,7 @@ class AvailabilityCheckServiceTest {
         LocalDate date = LocalDate.of(2024, 7, 22);
         List<CleaningProfessional> availableProfessionals = availabilityCheckService.checkAvailabilityByDate(date, 6);
 
-        assertEquals(0, availableProfessionals.size());
+        assertEquals(6, availableProfessionals.size());
     }
 
     @Test

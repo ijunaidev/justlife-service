@@ -30,8 +30,8 @@ public class AvailabilityCheckService {
      * @return a list of available cleaning professionals
      */
     public List<CleaningProfessional> checkAvailabilityByDate(LocalDate date, int professionalsRequired) {
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(23, 59);
+        LocalDateTime startOfDay = date.atTime(8, 0);  // Start of the working day at 8:00 AM
+        LocalDateTime endOfDay = date.atTime(22, 0);   // End of the working day at 10:00 PM
 
         List<CleaningProfessional> allProfessionals = professionalRepository.findAll();
 

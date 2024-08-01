@@ -1,5 +1,6 @@
 package com.justlife.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -35,6 +36,6 @@ public class Booking {
             inverseJoinColumns = @JoinColumn(name = "professional_id")
     )
     @Schema(description = "List of cleaning professionals assigned to the booking")
+    //@JsonManagedReference
     private List<CleaningProfessional> professionals;
-
 }

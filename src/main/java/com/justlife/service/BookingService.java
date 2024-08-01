@@ -21,9 +21,6 @@ public class BookingService {
     private BookingRepository bookingRepository;
 
     @Autowired
-    private CleaningProfessionalRepository professionalRepository;
-
-    @Autowired
     private AvailabilityCheckService availabilityCheckService;
 
     /**
@@ -47,7 +44,7 @@ public class BookingService {
         }
 
         Vehicle vehicle = availableProfessionals.get(0).getVehicle();
-        List<CleaningProfessional> assignedProfessionals = filterProfessionalsByVehicle(vehicle, availableProfessionals, booking.getProfessionalsRequired());
+        List<CleaningProfessional> assignedProfessionals = filterProfessionalsByVehicle(vehicle.getId(), availableProfessionals, booking.getProfessionalsRequired());
 
         booking.setProfessionals(assignedProfessionals);
 
@@ -86,7 +83,7 @@ public class BookingService {
         }
 
         Vehicle vehicle = availableProfessionals.get(0).getVehicle();
-        List<CleaningProfessional> assignedProfessionals = filterProfessionalsByVehicle(vehicle, availableProfessionals, updatedBooking.getProfessionalsRequired());
+        List<CleaningProfessional> assignedProfessionals = filterProfessionalsByVehicle(vehicle.getId(), availableProfessionals, updatedBooking.getProfessionalsRequired());
 
         existingBooking.setProfessionals(assignedProfessionals);
         existingBooking.setStartTime(updatedBooking.getStartTime());
@@ -106,9 +103,9 @@ public class BookingService {
         }
     }
 
-    private List<CleaningProfessional> filterProfessionalsByVehicle(Vehicle vehicle, List<CleaningProfessional> availableProfessionals, int professionalsRequired) {
-        List<CleaningProfessional> assignedProfessionals = vehicle.getProfessionals().stream()
-                .filter(availableProfessionals::contains)
+    private List<CleaningProfessional> filterProfessionalsByVehicle(Long vehicleId, List<CleaningProfessional> availableProfessionals, int professionalsRequired) {
+        List<CleaningProfessional> assignedProfessionals = availableProfessionals.stream()
+                .filter(pro -> pro.getVehicle().getId().equals(vehicleId))
                 .limit(professionalsRequired)
                 .collect(Collectors.toList());
 
