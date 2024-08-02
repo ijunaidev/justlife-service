@@ -1,6 +1,7 @@
 package com.justlife.controller;
 
 import com.justlife.model.Booking;
+import com.justlife.model.BookingDetail;
 import com.justlife.model.CleaningProfessional;
 import com.justlife.service.AvailabilityCheckService;
 import com.justlife.service.BookingService;
@@ -17,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/bookings")
@@ -39,6 +39,16 @@ public class BookingController {
         try {
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             LocalDate parsedDate = LocalDate.parse(date, dateFormatter);
+
+            professionalsRequired = professionalsRequired != null ? professionalsRequired : 1;
+
+            if (professionalsRequired < 1 || professionalsRequired > 3) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid number of professionals required");
+            }
+
+            if (duration != null && duration != 2 && duration != 4) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid booking duration. Must be 2 or 4 hours.");
+            }
 
             if (startTime == null || duration == null || professionalsRequired == null) {
                 // Only date provided
@@ -88,5 +98,13 @@ public class BookingController {
 
         return bookingService.updateBooking(id, booking);
     }
-}
 
+    @Operation(summary = "Get all bookings", description = "Returns a list of all bookings.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of all bookings")
+    })
+    @GetMapping
+    public List<BookingDetail> getAllBookingDetails() {
+        return bookingService.getAllBookingDetails();
+    }
+}

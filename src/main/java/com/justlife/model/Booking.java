@@ -1,6 +1,5 @@
 package com.justlife.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -28,14 +27,4 @@ public class Booking {
 
     @Schema(description = "Number of cleaning professionals required for the booking", example = "1", required = true)
     private int professionalsRequired;
-
-    @ManyToMany
-    @JoinTable(
-            name = "booking_professionals",
-            joinColumns = @JoinColumn(name = "booking_id"),
-            inverseJoinColumns = @JoinColumn(name = "professional_id")
-    )
-    @Schema(description = "List of cleaning professionals assigned to the booking")
-    //@JsonManagedReference
-    private List<CleaningProfessional> professionals;
 }

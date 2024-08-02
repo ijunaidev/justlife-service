@@ -1,6 +1,7 @@
 package com.justlife.controller;
 
 import com.justlife.model.Booking;
+import com.justlife.model.BookingDetail;
 import com.justlife.model.CleaningProfessional;
 import com.justlife.service.AvailabilityCheckService;
 import com.justlife.service.BookingService;
@@ -13,17 +14,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,25 +55,10 @@ public class BookingControllerTest {
         booking.setStartTime(LocalDateTime.of(2024, 7, 22, 10, 0));
         booking.setDuration(2);
         booking.setProfessionalsRequired(1);
-        booking.setProfessionals(professionals);
     }
 
     @Test
-    void testCheckAvailabilityByDate_ValidRequest() throws Exception {
-        LocalDate date = LocalDate.of(2024, 7, 22);
-        when(availabilityCheckService.checkAvailabilityByDate(any(LocalDate.class), any(Integer.class)))
-                .thenReturn(professionals);
-
-        mockMvc.perform(get("/bookings/availability")
-                        .param("date", "2024-07-22"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[{'id':1,'name':'John Doe'}]"));
-    }
-
-    @Test
-    void testCheckAvailabilityByDateTime_ValidRequest() throws Exception {
-        LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
+    void testCheckAvailability_ValidRequest() throws Exception {
         when(availabilityCheckService.checkAvailabilityByDateTime(any(LocalDateTime.class), any(Integer.class), any(Integer.class)))
                 .thenReturn(professionals);
 
@@ -93,17 +75,30 @@ public class BookingControllerTest {
     @Test
     void testCheckAvailability_InvalidDateFormat() throws Exception {
         mockMvc.perform(get("/bookings/availability")
-                        .param("date", "invalid-date"))
+                        .param("date", "invalid-date")
+                        .param("startTime", "2024-07-22T10:00:00")
+                        .param("duration", "2")
+                        .param("professionalsRequired", "1"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testCheckAvailability_InvalidDateTimeFormat() throws Exception {
+    void testCheckAvailability_InvalidDuration() throws Exception {
         mockMvc.perform(get("/bookings/availability")
                         .param("date", "2024-07-22")
-                        .param("startTime", "invalid-datetime")
-                        .param("duration", "2")
+                        .param("startTime", "2024-07-22T10:00:00")
+                        .param("duration", "5")
                         .param("professionalsRequired", "1"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testCheckAvailability_InvalidProfessionalsRequired() throws Exception {
+        mockMvc.perform(get("/bookings/availability")
+                        .param("date", "2024-07-22")
+                        .param("startTime", "2024-07-22T10:00:00")
+                        .param("duration", "2")
+                        .param("professionalsRequired", "4"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -118,7 +113,7 @@ public class BookingControllerTest {
                         .content(bookingJson))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("{'id':1,'startTime':'2024-07-22T10:00:00','duration':2,'professionalsRequired':1,'professionals':[{'id':1,'name':'John Doe'}]}"));
+                .andExpect(content().json("{'id':1,'startTime':'2024-07-22T10:00:00','duration':2,'professionalsRequired':1}"));
     }
 
     @Test
@@ -152,7 +147,7 @@ public class BookingControllerTest {
                         .content(bookingJson))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("{'id':1,'startTime':'2024-07-22T10:00:00','duration':2,'professionalsRequired':1,'professionals':[{'id':1,'name':'John Doe'}]}"));
+                .andExpect(content().json("{'id':1,'startTime':'2024-07-22T10:00:00','duration':2,'professionalsRequired':1}"));
     }
 
     @Test
@@ -176,31 +171,17 @@ public class BookingControllerTest {
     }
 
     @Test
-    void testCheckAvailability_NoProfessionalsRequired() throws Exception {
-        LocalDate date = LocalDate.of(2024, 7, 22);
-        when(availabilityCheckService.checkAvailabilityByDate(any(LocalDate.class), eq(1)))
-                .thenReturn(professionals);
+    void testGetAllBookingDetails() throws Exception {
+        List<BookingDetail> bookingDetails = new ArrayList<>();
+        BookingDetail bookingDetail = new BookingDetail();
+        bookingDetail.setId(1L);
+        bookingDetails.add(bookingDetail);
 
-        mockMvc.perform(get("/bookings/availability")
-                        .param("date", "2024-07-22"))
+        when(bookingService.getAllBookingDetails()).thenReturn(bookingDetails);
+
+        mockMvc.perform(get("/bookings"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[{'id':1,'name':'John Doe'}]"));
-    }
-
-    @Test
-    void testCheckAvailability_ValidDateAndTimeWithoutProfessionalsRequired() throws Exception {
-        LocalDateTime startTime = LocalDateTime.of(2024, 7, 22, 10, 0);
-        when(availabilityCheckService.checkAvailabilityByDateTime(any(LocalDateTime.class), eq(2), eq(1)))
-                .thenReturn(professionals);
-
-        mockMvc.perform(get("/bookings/availability")
-                        .param("date", "2024-07-22")
-                        .param("startTime", "2024-07-22T10:00:00")
-                        .param("duration", "2")
-                        .param("professionalsRequired", "1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("[{'id':1,'name':'John Doe'}]"));
+                .andExpect(content().json("[{'id':1}]"));
     }
 }

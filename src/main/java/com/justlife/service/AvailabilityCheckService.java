@@ -1,7 +1,9 @@
 package com.justlife.service;
 
 import com.justlife.model.Booking;
+import com.justlife.model.BookingDetail;
 import com.justlife.model.CleaningProfessional;
+import com.justlife.repository.BookingDetailRepository;
 import com.justlife.repository.BookingRepository;
 import com.justlife.repository.CleaningProfessionalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,9 @@ public class AvailabilityCheckService {
 
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private BookingDetailRepository bookingDetailRepository;
 
     /**
      * Checks the availability of cleaning professionals on a given date.
@@ -89,12 +94,12 @@ public class AvailabilityCheckService {
         }
 
         // Check for existing bookings and ensure a 30-minute break
-        List<Booking> bookings = bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(
+        List<BookingDetail> bookingDetails = bookingDetailRepository.findByCleaningProfessionalIdAndBookingStartTimeBetween(
                 professional.getId(), startOfDay, endOfDay);
 
-        for (Booking booking : bookings) {
-            LocalDateTime bookingStart = booking.getStartTime();
-            LocalDateTime bookingEnd = booking.getEndTime();
+        for (BookingDetail bookingDetail : bookingDetails) {
+            LocalDateTime bookingStart = bookingDetail.getBooking().getStartTime();
+            LocalDateTime bookingEnd = bookingDetail.getBooking().getEndTime();
 
             if (startOfDay.isBefore(bookingEnd.plusMinutes(30)) && endOfDay.isAfter(bookingStart.minusMinutes(30))) {
                 return false;
@@ -132,12 +137,12 @@ public class AvailabilityCheckService {
         }
 
         // Check for existing bookings and ensure a 30-minute break
-        List<Booking> bookings = bookingRepository.findByProfessionals_IdAndStartTimeGreaterThanEqualAndEndTimeLessThanEqual(
+        List<BookingDetail> bookingDetails = bookingDetailRepository.findByCleaningProfessionalIdAndBookingStartTimeBetween(
                 professional.getId(), startTime.toLocalDate().atStartOfDay(), endTime.toLocalDate().atTime(23, 59));
 
-        for (Booking booking : bookings) {
-            LocalDateTime bookingStart = booking.getStartTime();
-            LocalDateTime bookingEnd = booking.getEndTime();
+        for (BookingDetail bookingDetail : bookingDetails) {
+            LocalDateTime bookingStart = bookingDetail.getBooking().getStartTime();
+            LocalDateTime bookingEnd = bookingDetail.getBooking().getEndTime();
 
             if (startTime.isBefore(bookingEnd.plusMinutes(30)) && endTime.isAfter(bookingStart.minusMinutes(30))) {
                 return false;
@@ -155,10 +160,10 @@ public class AvailabilityCheckService {
      */
     public void updateProfessionalsAvailability(List<CleaningProfessional> professionals, Booking booking) {
         for (CleaningProfessional professional : professionals) {
-            List<Booking> bookings = bookingRepository.findByProfessionals_Id(professional.getId());
-            bookings.add(booking);
-            professional.setBookings(bookings);
-            professionalRepository.save(professional);
+            BookingDetail bookingDetail = new BookingDetail();
+            bookingDetail.setBooking(booking);
+            bookingDetail.setCleaningProfessional(professional);
+            bookingDetailRepository.save(bookingDetail);
         }
     }
 }
